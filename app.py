@@ -107,3 +107,62 @@ if not result_df.empty:
     ax.pie(result_df["Total GWP (kg CO₂ eq)"], labels=result_df["Material/Process"], autopct="%1.1f%%", startangle=90)
     ax.axis("equal")
     st.pyplot(fig)
+.
+.
+.
+.
+#Module2 : 3D Printing Energy Calc
+
+st.markdown("---")
+st.header("Step 2: 3D Printing Energy GWP Calculator")
+
+# Inputs
+hours = st.number_input("Enter number of 3D printing hours", min_value=0, value=24)
+solar_percent = st.slider("Percentage of energy from Solar", 0, 100, 20)
+grid_percent = 100 - solar_percent
+
+st.markdown("Enter emission factors (kg CO₂ eq/kWh):")
+
+col1, col2 = st.columns(2)
+with col1:
+    solar_ef_input = st.text_input("Solar emission factor (default: 0.05)", value="0.05")
+with col2:
+    grid_ef_input = st.text_input("Grid emission factor (default: 0.198)", value="0.198")
+
+# Validate inputs
+try:
+    solar_ef = float(solar_ef_input)
+except ValueError:
+    st.warning("Invalid solar emission factor. Using default value of 0.05.")
+    solar_ef = 0.05
+
+try:
+    grid_ef = float(grid_ef_input)
+except ValueError:
+    st.warning("Invalid grid emission factor. Using default value of 0.198.")
+    grid_ef = 0.198
+
+# Calculations
+total_kwh = hours
+solar_gwp = total_kwh * (solar_percent / 100) * solar_ef
+grid_gwp = total_kwh * (grid_percent / 100) * grid_ef
+total_energy_gwp = solar_gwp + grid_gwp
+
+# Results table
+energy_df = pd.DataFrame({
+    "Source": ["Solar", "Grid"],
+    "kWh": [total_kwh * (solar_percent / 100), total_kwh * (grid_percent / 100)],
+    "GWP (kg CO₂ eq)": [round(solar_gwp, 3), round(grid_gwp, 3)]
+})
+
+st.subheader("Energy Mix Contribution Table")
+st.dataframe(energy_df)
+
+# Chart
+st.subheader("Energy GWP Bar Chart")
+fig, ax = plt.subplots()
+ax.bar(energy_df["Source"], energy_df["GWP (kg CO₂ eq)"], color=["#2ca02c", "#ff7f0e"])
+ax.set_ylabel("GWP (kg CO₂ eq)")
+for i, v in enumerate(energy_df["GWP (kg CO₂ eq)"]):
+    ax.text(i, v + 0.01, str(v), ha="center", fontweight="bold")
+st.pyplot(fig)
