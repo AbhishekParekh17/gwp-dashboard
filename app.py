@@ -1,4 +1,6 @@
 import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
 
 # --- LOGIN SETUP ---
 USERNAME = "Nathan"
@@ -8,153 +10,140 @@ PASSWORD = "Nathan@314159"
 st.sidebar.title("🔐 Login Required")
 username = st.sidebar.text_input("Username")
 password = st.sidebar.text_input("Password", type="password")
-
 if username != USERNAME or password != PASSWORD:
     st.sidebar.warning("Please enter correct credentials to continue.")
     st.stop()
 
-# --- MAIN DASHBOARD ---
+# Page layout
 st.set_page_config(page_title="Surfboard GWP Insights", layout="wide")
 st.title("🌊 SwellCycle GWP Calculator Dashboard")
 st.markdown("Welcome, **Nathan**. Explore the life cycle emissions of your surfboard below.")
 
-# Sidebar form (to be expanded)
-st.sidebar.markdown("## Input Parameters")
-st.sidebar.text("➡️ More options coming soon...")
-
-# Main dashboard placeholders
+# Section Headers
 st.markdown("---")
 col1, col2 = st.columns(2)
 
 with col1:
     st.markdown("📦 **Material Inputs**")
-    st.info("This section will show input sliders and default values for PET, epoxy, etc.")
+    st.info("Enter quantities and emission factors for materials and processes. Suggested values are shown below each field.")
 
 with col2:
     st.markdown("📊 **GWP Charts**")
     st.warning("Charts will appear here after input.")
 
 st.markdown("📋 **GWP Summary Table (Coming Soon)**")
-#
-#
-#
-#
-#Module1 : Material & Process calculator
 
-import streamlit as st
-import pandas as pd
-import matplotlib.pyplot as plt
+# --- MODULE 1: MATERIAL AND PROCESS INPUTS ---
 
-# Sample default emission factors and units
-default_data = {
-    "Material/Process": ["PET Filament", "Epoxy Resin", "Fiberglass", "3D Printing", "Glassing", "Testing"],
-    "Unit": ["kg", "kg", "kg", "kWh", "kg", "kWh"],
-    "Default Emission Factor": [3.468, 6.55, 2.63, 0.198, 4.27, 0.198],
-}
+material_data = [
+    {"name": "PET Filament", "unit": "kg", "suggested_ef": 3.468},
+    {"name": "Epoxy Resin", "unit": "kg", "suggested_ef": 6.55},
+    {"name": "Fiberglass", "unit": "kg", "suggested_ef": 2.63},
+]
 
-df = pd.DataFrame(default_data)
+process_data = [
+    {"name": "Glassing", "quantity": 1.0, "unit": "kg", "suggested_ef": 4.27},
+    {"name": "Testing", "quantity": 0.125, "unit": "kWh", "suggested_ef": 0.198},
+]
 
-st.title("Material & Process GWP Calculator")
+user_material_inputs = []
 
-# Input fields
-st.header("Enter Quantities and Emission Factors")
-user_inputs = []
+st.subheader("🔧 Step 1: Material & Process Inputs")
 
-for index, row in df.iterrows():
-    col1, col2, col3 = st.columns(3)
+for item in material_data:
+    with st.expander(f"{item['name']}"):
+        name = item["name"]
+        try:
+            qty = float(st.number_input(f"Quantity of {name} ({item['unit']})", min_value=0.0))
+        except:
+            qty = 0.0
+        ef = st.number_input(
+            f"Emission Factor for {name} (kg CO₂ eq per {item['unit']})",
+            min_value=0.0,
+            help=f"Suggested: {item['suggested_ef']}"
+        )
+        user_material_inputs.append({
+            "Material/Process": name,
+            "Quantity": qty,
+            "EF": ef,
+            "Total GWP": qty * ef
+        })
 
-    # Name validation
-    name = col1.text_input(f"Name {index+1}", value=row["Material/Process"])
-    if name.replace(" ", "").isdigit():
-        st.warning(f"⚠️ Name for row {index+1} looks numeric — please enter a valid material/process name.")
-        continue
+# Glassing & Testing - fixed quantity, user-supplied EF
+for proc in process_data:
+    with st.expander(f"{proc['name']}"):
+        ef = st.number_input(
+            f"Emission Factor for {proc['name']} (kg CO₂ eq per {proc['unit']})",
+            min_value=0.0,
+            help=f"Suggested: {proc['suggested_ef']}"
+        )
+        user_material_inputs.append({
+            "Material/Process": proc['name'],
+            "Quantity": proc['quantity'],
+            "EF": ef,
+            "Total GWP": proc['quantity'] * ef
+        })
 
-    # Quantity input with validation
-    try:
-        qty = float(col2.text_input(f"Quantity of {name} ({row['Unit']})", value="0.0"))
-    except ValueError:
-        st.warning(f"⚠️ Please enter a number for quantity of {name}")
-        qty = 0.0
+# --- MODULE 2: 3D PRINTING ENERGY ---
 
-    # Emission factor input with validation
-    try:
-        ef = float(col3.text_input(f"Emission Factor for {name} (kg CO₂ eq/unit)", value=str(row["Default Emission Factor"])))
-    except ValueError:
-        st.warning(f"⚠️ Please enter a number for emission factor of {name}")
-        ef = 0.0
+st.subheader("🖨️ Step 2: 3D Printing Energy GWP Calculator")
 
-    user_inputs.append({
-        "Material/Process": name,
-        "Quantity": qty,
-        "Emission Factor": ef
+try:
+    hours = float(st.number_input("Enter 3D Printing Time (in hours)", min_value=1.0, step=1.0))
+    power_draw = st.number_input("Printer Power Consumption (kWh per hour)", min_value=0.0, value=1.2)
+    total_energy = hours * power_draw
+
+    solar_pct = float(st.slider("Solar Energy Share (%)", min_value=0, max_value=100, value=20))
+    grid_pct = 100 - solar_pct
+    st.markdown(f"🔌 **Grid Share**: {grid_pct}%")
+
+    solar_ef = st.number_input(
+        "Emission Factor for Solar (kg CO₂ eq/kWh)",
+        min_value=0.0,
+        help="Suggested: 0.05"
+    )
+    grid_ef = st.number_input(
+        "Emission Factor for Grid (kg CO₂ eq/kWh)",
+        min_value=0.0,
+        help="Suggested: 0.198"
+    )
+
+    solar_energy = total_energy * (solar_pct / 100)
+    grid_energy = total_energy * (grid_pct / 100)
+
+    solar_emission = solar_energy * solar_ef
+    grid_emission = grid_energy * grid_ef
+    total_3dp_emission = solar_emission + grid_emission
+
+    # Add to main list
+    user_material_inputs.append({
+        "Material/Process": "3D Printing (Energy)",
+        "Quantity": total_energy,
+        "EF": f"{solar_ef}/{grid_ef}",
+        "Total GWP": total_3dp_emission
     })
 
-# Output processing
-results = []
-for item in user_inputs:
-    total_gwp = item["Quantity"] * item["Emission Factor"]
-    results.append({"Material/Process": item["Material/Process"], "Total GWP (kg CO₂ eq)": round(total_gwp, 3)})
-
-result_df = pd.DataFrame(results)
-
-st.subheader("GWP Contribution Table")
-st.dataframe(result_df)
-
-# Chart
-if not result_df.empty:
-    st.subheader("GWP Contribution Pie Chart")
-    fig, ax = plt.subplots()
-    ax.pie(result_df["Total GWP (kg CO₂ eq)"], labels=result_df["Material/Process"], autopct="%1.1f%%", startangle=90)
-    ax.axis("equal")
-    st.pyplot(fig)
-#
-#
-#
-#
-#Module2 : 3D Printing Energy Calc
-
-# Step 2 – 3D Printing Energy GWP Calculator
-st.markdown("### 🖨️ Step 2: 3D Printing Energy GWP Calculator")
-
-st.info("Enter the number of printing hours, solar/grid energy split, and choose whether to use default emission factors.")
-
-# Collect user inputs
-try:
-    hours = float(st.number_input("Enter total 3D printing hours", min_value=1.0, step=1.0))
-
-    solar_split = float(st.slider("Solar Energy Contribution (%)", min_value=0, max_value=100, value=50))
-    grid_split = 100 - solar_split
-
-    st.markdown(f"**Grid Energy Contribution:** {grid_split} %")
-
-    use_default_energy_factors = st.radio("Do you want to use default emission factors?", ["Yes", "No"])
-
-    if use_default_energy_factors == "Yes":
-        solar_ef = 0.05
-        grid_ef = 0.198
-    else:
-        solar_ef = float(st.number_input("Enter Solar Emission Factor (kg CO₂ eq/kWh)", min_value=0.0))
-        grid_ef = float(st.number_input("Enter Grid Emission Factor (kg CO₂ eq/kWh)", min_value=0.0))
-
-    # Assume average power usage per hour (e.g. 1.2 kWh per hour)
-    power_usage_per_hour = float(st.number_input("Enter printer's power draw (kWh/hour)", value=1.2))
-
-    # Calculate energy emissions
-    total_energy = power_usage_per_hour * hours
-    solar_energy = total_energy * (solar_split / 100)
-    grid_energy = total_energy * (grid_split / 100)
-
-    solar_emissions = solar_energy * solar_ef
-    grid_emissions = grid_energy * grid_ef
-    total_printing_gwp = solar_emissions + grid_emissions
-
-    st.success(f"Total GWP from 3D Printing: **{total_printing_gwp:.2f} kg CO₂ eq**")
-
-    # Optional bar chart
+    st.success(f"Total GWP from 3D Printing Energy: **{total_3dp_emission:.2f} kg CO₂ eq**")
     st.bar_chart({
-        "Emission Source": ["Solar Energy", "Grid Energy"],
-        "GWP (kg CO₂ eq)": [solar_emissions, grid_emissions]
+        "Energy Type": ["Solar", "Grid"],
+        "GWP (kg CO₂ eq)": [solar_emission, grid_emission]
     })
 
 except Exception as e:
-    st.warning("Please enter valid numeric values.")
+    st.warning("⚠️ Please enter valid numeric values.")
+
+# --- SUMMARY TABLE AND PIE CHART ---
+
+st.subheader("📈 Summary Table of All Contributions")
+
+final_df = pd.DataFrame(user_material_inputs)
+final_df_display = final_df[["Material/Process", "Quantity", "EF", "Total GWP"]]
+st.dataframe(final_df_display)
+
+# Pie chart of total GWP contribution
+if not final_df.empty:
+    st.subheader("📊 Total GWP Contribution Breakdown")
+    fig, ax = plt.subplots()
+    ax.pie(final_df["Total GWP"], labels=final_df["Material/Process"], autopct="%1.1f%%", startangle=90)
+    ax.axis("equal")
+    st.pyplot(fig)
