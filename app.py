@@ -35,10 +35,10 @@ with col2:
     st.warning("Charts will appear here after input.")
 
 st.markdown("📋 **GWP Summary Table (Coming Soon)**")
-.
-.
-.
-.
+#
+#
+#
+#
 #Module1 : Material & Process calculator
 
 import streamlit as st
@@ -107,10 +107,10 @@ if not result_df.empty:
     ax.pie(result_df["Total GWP (kg CO₂ eq)"], labels=result_df["Material/Process"], autopct="%1.1f%%", startangle=90)
     ax.axis("equal")
     st.pyplot(fig)
-.
-.
-.
-.
+#
+#
+#
+#
 #Module2 : 3D Printing Energy Calc
 
 # Step 2 – 3D Printing Energy GWP Calculator
