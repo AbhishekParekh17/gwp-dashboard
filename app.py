@@ -113,56 +113,48 @@ if not result_df.empty:
 .
 #Module2 : 3D Printing Energy Calc
 
-st.markdown("---")
-st.header("Step 2: 3D Printing Energy GWP Calculator")
+# Step 2 – 3D Printing Energy GWP Calculator
+st.markdown("### 🖨️ Step 2: 3D Printing Energy GWP Calculator")
 
-# Inputs
-hours = st.number_input("Enter number of 3D printing hours", min_value=0, value=24)
-solar_percent = st.slider("Percentage of energy from Solar", 0, 100, 20)
-grid_percent = 100 - solar_percent
+st.info("Enter the number of printing hours, solar/grid energy split, and choose whether to use default emission factors.")
 
-st.markdown("Enter emission factors (kg CO₂ eq/kWh):")
-
-col1, col2 = st.columns(2)
-with col1:
-    solar_ef_input = st.text_input("Solar emission factor (default: 0.05)", value="0.05")
-with col2:
-    grid_ef_input = st.text_input("Grid emission factor (default: 0.198)", value="0.198")
-
-# Validate inputs
+# Collect user inputs
 try:
-    solar_ef = float(solar_ef_input)
-except ValueError:
-    st.warning("Invalid solar emission factor. Using default value of 0.05.")
-    solar_ef = 0.05
+    hours = float(st.number_input("Enter total 3D printing hours", min_value=1.0, step=1.0))
 
-try:
-    grid_ef = float(grid_ef_input)
-except ValueError:
-    st.warning("Invalid grid emission factor. Using default value of 0.198.")
-    grid_ef = 0.198
+    solar_split = float(st.slider("Solar Energy Contribution (%)", min_value=0, max_value=100, value=50))
+    grid_split = 100 - solar_split
 
-# Calculations
-total_kwh = hours
-solar_gwp = total_kwh * (solar_percent / 100) * solar_ef
-grid_gwp = total_kwh * (grid_percent / 100) * grid_ef
-total_energy_gwp = solar_gwp + grid_gwp
+    st.markdown(f"**Grid Energy Contribution:** {grid_split} %")
 
-# Results table
-energy_df = pd.DataFrame({
-    "Source": ["Solar", "Grid"],
-    "kWh": [total_kwh * (solar_percent / 100), total_kwh * (grid_percent / 100)],
-    "GWP (kg CO₂ eq)": [round(solar_gwp, 3), round(grid_gwp, 3)]
-})
+    use_default_energy_factors = st.radio("Do you want to use default emission factors?", ["Yes", "No"])
 
-st.subheader("Energy Mix Contribution Table")
-st.dataframe(energy_df)
+    if use_default_energy_factors == "Yes":
+        solar_ef = 0.05
+        grid_ef = 0.198
+    else:
+        solar_ef = float(st.number_input("Enter Solar Emission Factor (kg CO₂ eq/kWh)", min_value=0.0))
+        grid_ef = float(st.number_input("Enter Grid Emission Factor (kg CO₂ eq/kWh)", min_value=0.0))
 
-# Chart
-st.subheader("Energy GWP Bar Chart")
-fig, ax = plt.subplots()
-ax.bar(energy_df["Source"], energy_df["GWP (kg CO₂ eq)"], color=["#2ca02c", "#ff7f0e"])
-ax.set_ylabel("GWP (kg CO₂ eq)")
-for i, v in enumerate(energy_df["GWP (kg CO₂ eq)"]):
-    ax.text(i, v + 0.01, str(v), ha="center", fontweight="bold")
-st.pyplot(fig)
+    # Assume average power usage per hour (e.g. 1.2 kWh per hour)
+    power_usage_per_hour = float(st.number_input("Enter printer's power draw (kWh/hour)", value=1.2))
+
+    # Calculate energy emissions
+    total_energy = power_usage_per_hour * hours
+    solar_energy = total_energy * (solar_split / 100)
+    grid_energy = total_energy * (grid_split / 100)
+
+    solar_emissions = solar_energy * solar_ef
+    grid_emissions = grid_energy * grid_ef
+    total_printing_gwp = solar_emissions + grid_emissions
+
+    st.success(f"Total GWP from 3D Printing: **{total_printing_gwp:.2f} kg CO₂ eq**")
+
+    # Optional bar chart
+    st.bar_chart({
+        "Emission Source": ["Solar Energy", "Grid Energy"],
+        "GWP (kg CO₂ eq)": [solar_emissions, grid_emissions]
+    })
+
+except Exception as e:
+    st.warning("Please enter valid numeric values.")
