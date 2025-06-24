@@ -160,48 +160,63 @@ st.markdown("© 2025 Abhishek Parekh. All rights reserved. This dashboard is IP 
 #
 #
 # --------------------------------------
-# Step 3 – Multi-Mode Transportation GWP Calculator
 # --------------------------------------
+# Step 3 – Multi-Mode Transportation GWP Calculator (Road / Sea / Air / Rail)
+# --------------------------------------
+import matplotlib.pyplot as plt
+
 st.markdown("---")
 st.markdown("### 🚚 Step 3: Transportation Emissions Calculator (Multi-Mode)")
 
-st.info("Enter total distance, payload, emission factors, and energy mode distribution for transport (Road / Sea / Air).")
+st.info("Input distance, payload, transport mode split, and emission factors.")
 
 try:
     distance = float(st.number_input("Enter total transport distance (miles)", min_value=0.0, value=100.0))
     payload = float(st.number_input("Enter total payload (kg)", min_value=0.0, value=10.0))
 
-    st.markdown("#### 🚛 Transport Mode Split (in %)")
-    road_percent = st.slider("Road (%)", 0, 100, 50)
-    sea_percent = st.slider("Sea (%)", 0, 100 - road_percent, 30)
-    air_percent = 100 - road_percent - sea_percent
+    st.markdown("#### ✈️ Transport Mode Split (%) – Must total 100")
+    col1, col2, col3, col4 = st.columns(4)
+    road_percent = col1.number_input("Road (%)", min_value=0.0, max_value=100.0, value=40.0)
+    sea_percent = col2.number_input("Sea (%)", min_value=0.0, max_value=100.0, value=30.0)
+    air_percent = col3.number_input("Air (%)", min_value=0.0, max_value=100.0, value=20.0)
+    rail_percent = col4.number_input("Rail (%)", min_value=0.0, max_value=100.0, value=10.0)
 
-    st.markdown(f"**Air (%)**: {air_percent}")
-
-    use_default_transport_ef = st.radio("Use suggested emission factors?", ["Yes", "No"])
-
-    if use_default_transport_ef == "Yes":
-        road_ef = 0.0000689
-        sea_ef = 0.000012  # Suggestion, can be adjusted later
-        air_ef = 0.000505
+    total_percent = road_percent + sea_percent + air_percent + rail_percent
+    if total_percent != 100.0:
+        st.warning("⚠️ Total mode percentage must equal 100.")
     else:
-        road_ef = float(st.number_input("Enter Road EF (kg CO₂ eq per kg-mile)", min_value=0.0, value=0.0000689))
-        sea_ef = float(st.number_input("Enter Sea EF (kg CO₂ eq per kg-mile)", min_value=0.0, value=0.000012))
-        air_ef = float(st.number_input("Enter Air EF (kg CO₂ eq per kg-mile)", min_value=0.0, value=0.000505))
+        use_defaults = st.radio("Use suggested emission factors?", ["Yes", "No"])
 
-    # Calculate weighted transport emissions
-    road_gwp = payload * distance * road_ef * (road_percent / 100)
-    sea_gwp = payload * distance * sea_ef * (sea_percent / 100)
-    air_gwp = payload * distance * air_ef * (air_percent / 100)
+        if use_defaults == "Yes":
+            road_ef = 0.0000689
+            sea_ef = 0.000012
+            air_ef = 0.000505
+            rail_ef = 0.000035
+        else:
+            colA, colB = st.columns(2)
+            road_ef = colA.number_input("Road EF (kg CO₂ eq / kg-mile)", value=0.0000689)
+            sea_ef = colA.number_input("Sea EF (kg CO₂ eq / kg-mile)", value=0.000012)
+            air_ef = colB.number_input("Air EF (kg CO₂ eq / kg-mile)", value=0.000505)
+            rail_ef = colB.number_input("Rail EF (kg CO₂ eq / kg-mile)", value=0.000035)
 
-    total_transport_gwp = road_gwp + sea_gwp + air_gwp
+        # GWP calculations
+        road_gwp = payload * distance * road_ef * (road_percent / 100)
+        sea_gwp = payload * distance * sea_ef * (sea_percent / 100)
+        air_gwp = payload * distance * air_ef * (air_percent / 100)
+        rail_gwp = payload * distance * rail_ef * (rail_percent / 100)
 
-    st.success(f"Total GWP from transportation: **{total_transport_gwp:.3f} kg CO₂ eq**")
+        total_gwp_transport = road_gwp + sea_gwp + air_gwp + rail_gwp
 
-    st.bar_chart({
-        "Mode": ["Road", "Sea", "Air"],
-        "GWP (kg CO₂ eq)": [road_gwp, sea_gwp, air_gwp]
-    })
+        st.success(f"Total Transportation GWP: **{total_gwp_transport:.3f} kg CO₂ eq**")
+
+        # Horizontal bar chart
+        st.subheader("📊 Transport Mode-wise GWP")
+        fig, ax = plt.subplots(figsize=(8, 3))
+        modes = ["Road", "Sea", "Air", "Rail"]
+        values = [road_gwp, sea_gwp, air_gwp, rail_gwp]
+        ax.barh(modes, values, color="skyblue")
+        ax.set_xlabel("GWP (kg CO₂ eq)")
+        st.pyplot(fig)
 
 except Exception as e:
-    st.warning("⚠️ Please check the values entered in the transport section.")
+    st.error("Something went wrong with the transport calculator. Please check input values.")
