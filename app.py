@@ -6,6 +6,12 @@ matplotlib.use('Agg')
 
 # --- PAGE CONFIG & DARK THEME STYLE ---
 st.set_page_config(page_title="🌊 SwellCycle GWP Dashboard", layout="wide")
+from PIL import Image
+
+# --- LOGO SETUP ---
+logo = Image.open("swellcycle_logo.png")
+st.image(logo, width=180)  # Adjust width as needed
+
 st.markdown("""
     <style>
     body {
