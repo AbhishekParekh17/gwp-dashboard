@@ -62,12 +62,20 @@ material_df = pd.DataFrame(material_results)
 st.subheader("GWP Contribution Table")
 st.dataframe(material_df)
 
-if not material_df.empty:
+if not material_df.empty and material_df["Total GWP (kg CO₂ eq)"].sum() > 0:
     st.subheader("GWP Contribution Pie Chart")
     fig, ax = plt.subplots(figsize=(6, 6))
-    ax.pie(material_df["Total GWP (kg CO₂ eq)"], labels=material_df["Material"], autopct="%1.1f%%", startangle=90)
+    ax.pie(
+        material_df["Total GWP (kg CO₂ eq)"],
+        labels=material_df["Material"],
+        autopct="%1.1f%%",
+        startangle=90
+    )
     ax.axis("equal")
     st.pyplot(fig)
+elif not material_df.empty:
+    st.info("Please enter non-zero values to display the pie chart.")
+
 
 # -------------------------------
 # Step 2: 3D Printing Energy GWP Calculator
