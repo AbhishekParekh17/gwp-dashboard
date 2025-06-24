@@ -177,13 +177,16 @@ summary_df = pd.DataFrame({
     "Component": ["Materials", "Processes", "Transportation"],
     "Total GWP (kg CO₂ eq)": [sum_materials, sum_processes, sum_transport]
 })
-csv = summary_df.to_csv(index=False).encode('utf-8')
-st.download_button(
-    label="📥 Download GWP Summary as CSV",
-    data=csv,
-    file_name="gwp_summary_swellcycle.csv",
-    mime="text/csv"
-)
+# --- 📥 DOWNLOAD BUTTON ---
+if not summary_df.empty:
+    csv = summary_df.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="📥 Download GWP Summary as CSV",
+        data=csv,
+        file_name="gwp_summary_swellcycle.csv",
+        mime="text/csv"
+    )
+
 
 except:
     st.warning("Please complete transport fields.")
