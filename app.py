@@ -52,7 +52,7 @@ for i, row in df.iterrows():
     col1, col2, col3 = st.columns(3)
 
     name = col1.text_input(f"Name {i+1}", value=row["Material/Process"])
-    
+
     try:
         qty = float(col2.text_input(f"Quantity of {name} ({row['Unit']})", value="0.0"))
     except ValueError:
@@ -151,6 +151,50 @@ try:
 
 except Exception as e:
     st.warning("⚠️ Please ensure all 3D printing fields are correctly filled.")
+
+# --- Step 3: Transportation Emissions Calculator ---
+st.markdown("---")
+st.markdown("## 🚚 Step 3: Transportation Emissions Calculator")
+
+st.markdown("Enter payload weight, distance, and emission factor for each transport mode.")
+
+modes = ["Road", "Rail", "Sea", "Air"]
+suggested_efs = {"Road": 0.0000689, "Rail": 0.000025, "Sea": 0.000015, "Air": 0.00095}
+
+data = []
+
+for mode in modes:
+    st.subheader(f"Mode: {mode}")
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        weight = col1.number_input(f"Payload weight for {mode} (kg)", min_value=0.0, value=0.0)
+    with col2:
+        distance = col2.number_input(f"Distance for {mode} (miles)", min_value=0.0, value=0.0)
+    with col3:
+        ef = col3.number_input(
+            f"Emission Factor for {mode} (kg CO₂ eq/kg-mile)",
+            value=suggested_efs[mode],
+            min_value=0.0,
+            help=f"Suggested: {suggested_efs[mode]}"
+        )
+
+    gwp = weight * distance * ef
+    data.append({"Mode": mode, "GWP (kg CO₂ eq)": round(gwp, 3)})
+
+# Display table and bar chart
+transport_df = pd.DataFrame(data)
+
+st.subheader("📊 Transport GWP Comparison Table")
+st.dataframe(transport_df)
+
+st.subheader("📉 GWP by Transport Mode")
+fig, ax = plt.subplots()
+ax.barh(transport_df["Mode"], transport_df["GWP (kg CO₂ eq)"])
+for i, (mode, gwp) in enumerate(zip(transport_df["Mode"], transport_df["GWP (kg CO₂ eq)"])):
+    ax.text(gwp + 0.0005, i, str(gwp), va="center")
+ax.set_xlabel("GWP (kg CO₂ eq)")
+st.pyplot(fig)
 
 # --- Footer ---
 st.markdown("---")
