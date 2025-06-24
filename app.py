@@ -174,6 +174,16 @@ try:
         st.pyplot(fig3)
 except:
     st.warning("Please complete transport fields.")
+#
+#
+# --- 📥 DOWNLOAD BUTTON ---
+csv = summary_df.to_csv(index=False).encode('utf-8')
+st.download_button(
+    label="📥 Download GWP Summary as CSV",
+    data=csv,
+    file_name="gwp_summary_swellcycle.csv",
+    mime="text/csv"
+)
 
 # -----------------------------
 # FINAL SUMMARY
